@@ -11,7 +11,8 @@ import (
 	"go.opentelemetry.io/otel/propagation"
 
 	otelcontrib "go.opentelemetry.io/contrib"
-	semconv "go.opentelemetry.io/otel/semconv/v1.4.0"
+	semconv "go.opentelemetry.io/otel/semconv/v1.17.0"
+	"go.opentelemetry.io/otel/semconv/v1.17.0/httpconv"
 	oteltrace "go.opentelemetry.io/otel/trace"
 )
 
@@ -135,9 +136,7 @@ func (tw traceware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	ctx, span := tw.tracer.Start(
 		ctx, spanName,
-		oteltrace.WithAttributes(semconv.NetAttributesFromHTTPRequest("tcp", r)...),
-		oteltrace.WithAttributes(semconv.EndUserAttributesFromHTTPRequest(r)...),
-		oteltrace.WithAttributes(semconv.HTTPServerAttributesFromHTTPRequest(tw.serverName, routePattern, r)...),
+		oteltrace.WithAttributes(httpconv.ServerRequest(tw.serverName, r)...),
 		oteltrace.WithSpanKind(oteltrace.SpanKindServer),
 	)
 	defer span.End()
@@ -163,7 +162,7 @@ func (tw traceware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	span.SetAttributes(semconv.HTTPStatusCodeKey.Int(rrw.status))
 
 	// set span status
-	spanStatus, spanMessage := semconv.SpanStatusFromHTTPStatusCode(rrw.status)
+	spanStatus, spanMessage := httpconv.ServerStatus(rrw.status)
 	span.SetStatus(spanStatus, spanMessage)
 }
 
